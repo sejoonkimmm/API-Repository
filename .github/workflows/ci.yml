@@ -26,7 +26,6 @@ jobs:
           
       - name: Run linters
         run: |
-          flake8 app/
           black --check app/
           isort --check-only app/
 

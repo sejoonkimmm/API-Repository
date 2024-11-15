@@ -48,11 +48,14 @@ Update: PATCH /todos/{todo_id}
 
 Delete: DELETE /todos/{todo_id}
 
-환경 설정
-bashCopy# .env 파일 구성
+3. 환경 설정 예시
+```bash
+# .env 파일 구성
+
 DATABASE_URL=postgresql://username:password@localhost:5432/health_check
+
 ENVIRONMENT=development  # development/production
-개발 환경 설정
+```
 
 데이터베이스 초기화 및 서버 실행:
 

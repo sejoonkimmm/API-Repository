@@ -40,13 +40,23 @@ Endpoint: GET /health
 2. Todo CRUD API
 
 Create: POST /todos
+<img width="1339" alt="image" src="https://github.com/user-attachments/assets/2745a945-7797-4567-8543-9ae53cf116c2">
+
 
 Read: GET /todos
       GET /todos/{todo_id}
+<img width="1347" alt="image" src="https://github.com/user-attachments/assets/a83e0985-ffe8-4483-a997-3c7c332fd039">
+<img width="1353" alt="image" src="https://github.com/user-attachments/assets/e3a3bffa-df2a-4c77-984c-8b6ee8eb0421">
+
+
 
 Update: PATCH /todos/{todo_id}
+<img width="1351" alt="image" src="https://github.com/user-attachments/assets/46b2ff2f-b6eb-4874-bfe2-0b4e51df5b4a">
+
 
 Delete: DELETE /todos/{todo_id}
+<img width="1345" alt="image" src="https://github.com/user-attachments/assets/1f41e936-042d-4666-a951-dd4dcab3d4b2">
+
 
 3. 환경 설정 예시
 ```bash

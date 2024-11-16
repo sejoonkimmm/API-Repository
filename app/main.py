@@ -1,6 +1,6 @@
+import os
 from datetime import datetime
 from typing import List
-import os
 
 from fastapi import Depends, FastAPI, HTTPException, Query, status
 from sqlalchemy import text
@@ -9,11 +9,17 @@ from sqlalchemy.orm import Session
 from . import models
 from .database import get_db
 from .schemas import (
-    HealthStatus, HealthResponse, KubernetesInfo, DatabaseStatus,
-    TodoCreate, TodoUpdate, TodoResponse
+    DatabaseStatus,
+    HealthResponse,
+    HealthStatus,
+    KubernetesInfo,
+    TodoCreate,
+    TodoResponse,
+    TodoUpdate,
 )
 
 app = FastAPI(title="TODO API with Health Check")
+
 
 # Health Check
 @app.get(
@@ -29,11 +35,11 @@ async def health_check(db: Session = Depends(get_db)):
         namespace=os.getenv("KUBERNETES_NAMESPACE", "unknown"),
         pod_name=os.getenv("HOSTNAME", "unknown"),
         pod_ip=os.getenv("POD_IP", "unknown"),
-        node_name=os.getenv("NODE_NAME", "unknown")
+        node_name=os.getenv("NODE_NAME", "unknown"),
     )
-    
+
     db_status = DatabaseStatus(status="disconnected")
-    
+
     try:
         start_time = datetime.now()
         result = db.execute(text("SELECT version()"))
@@ -46,14 +52,14 @@ async def health_check(db: Session = Depends(get_db)):
             latency_ms=round(latency, 2),
             version=db_version,
             host=str(connection.engine.url.host),
-            port=connection.engine.url.port
+            port=connection.engine.url.port,
         )
 
         return HealthResponse(
             status=HealthStatus.HEALTHY,
             timestamp=datetime.utcnow(),
             kubernetes=k8s_info,
-            database=db_status
+            database=db_status,
         )
 
     except Exception as e:
@@ -64,9 +70,10 @@ async def health_check(db: Session = Depends(get_db)):
                 status=HealthStatus.UNHEALTHY,
                 timestamp=datetime.utcnow(),
                 kubernetes=k8s_info,
-                database=db_status
-            ).model_dump()
+                database=db_status,
+            ).model_dump(),
         )
+
 
 @app.post("/todos", response_model=TodoResponse, status_code=status.HTTP_201_CREATED)
 async def create_todo(todo: TodoCreate, db: Session = Depends(get_db)):
@@ -80,8 +87,9 @@ async def create_todo(todo: TodoCreate, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create todo: {str(e)}"
+            detail=f"Failed to create todo: {str(e)}",
         )
+
 
 @app.get(
     "/todos",

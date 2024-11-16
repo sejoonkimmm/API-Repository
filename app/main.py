@@ -1,56 +1,17 @@
+import os
 from datetime import datetime
-from enum import Enum
 from typing import List
 
 from fastapi import Depends, FastAPI, HTTPException, Query, status
-from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from . import models
 from .database import get_db
+from .schemas import (DatabaseStatus, HealthResponse, HealthStatus,
+                      KubernetesInfo, TodoCreate, TodoResponse, TodoUpdate)
 
-app = FastAPI(title="Health Check API")
-
-
-# Health Check 관련 모델
-class HealthStatus(str, Enum):
-    HEALTHY = "healthy"
-    DEGRADED = "degraded"
-    UNHEALTHY = "unhealthy"
-
-
-class HealthResponse(BaseModel):
-    status: HealthStatus
-    timestamp: datetime
-    details: dict
-
-
-# Todo 관련 모델
-class TodoBase(BaseModel):
-    title: str = Field(..., min_length=1, max_length=100)
-    description: str | None = Field(None, max_length=500)
-
-
-class TodoCreate(TodoBase):
-    pass
-
-
-class TodoUpdate(BaseModel):
-    title: str | None = Field(None, min_length=1, max_length=100)
-    description: str | None = Field(None, max_length=500)
-    completed: bool | None = None
-
-
-class TodoResponse(BaseModel):
-    id: int
-    title: str
-    description: str | None
-    completed: bool
-    created_at: datetime
-    updated_at: datetime
-
-    model_config = ConfigDict(from_attributes=True)
+app = FastAPI(title="TODO API with Health Check")
 
 
 # Health Check
@@ -60,39 +21,54 @@ class TodoResponse(BaseModel):
     responses={
         200: {"description": "Healthy"},
         503: {"description": "Service Unavailable"},
-        500: {"description": "Internal Server Error"},
     },
 )
 async def health_check(db: Session = Depends(get_db)):
-    try:
-        db.execute(text("SELECT 1"))
+    k8s_info = KubernetesInfo(
+        namespace=os.getenv("KUBERNETES_NAMESPACE", "unknown"),
+        pod_name=os.getenv("HOSTNAME", "unknown"),
+        pod_ip=os.getenv("POD_IP", "unknown"),
+        node_name=os.getenv("NODE_NAME", "unknown"),
+    )
 
-        return {
-            "status": HealthStatus.HEALTHY,
-            "timestamp": datetime.utcnow().isoformat(),
-            "details": {"database": "connected", "api_version": "1.0.0"},
-        }
+    db_status = DatabaseStatus(status="disconnected")
+
+    try:
+        start_time = datetime.now()
+        result = db.execute(text("SELECT version()"))
+        db_version = result.scalar()
+        latency = (datetime.now() - start_time).total_seconds() * 1000
+
+        connection = db.get_bind()
+        db_status = DatabaseStatus(
+            status="connected",
+            latency_ms=round(latency, 2),
+            version=db_version,
+            host=str(connection.engine.url.host),
+            port=connection.engine.url.port,
+        )
+
+        return HealthResponse(
+            status=HealthStatus.HEALTHY,
+            timestamp=datetime.utcnow(),
+            kubernetes=k8s_info,
+            database=db_status,
+        )
+
     except Exception as e:
+        db_status.error = str(e)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={
-                "status": HealthStatus.UNHEALTHY,
-                "timestamp": datetime.utcnow().isoformat(),
-                "error": str(e),
-                "details": {"database": "disconnected"},
-            },
+            detail=HealthResponse(
+                status=HealthStatus.UNHEALTHY,
+                timestamp=datetime.utcnow(),
+                kubernetes=k8s_info,
+                database=db_status,
+            ).model_dump(),
         )
 
 
-@app.post(
-    "/todos",
-    response_model=TodoResponse,
-    status_code=status.HTTP_201_CREATED,
-    responses={
-        400: {"description": "Invalid input"},
-        500: {"description": "Database error"},
-    },
-)
+@app.post("/todos", response_model=TodoResponse, status_code=status.HTTP_201_CREATED)
 async def create_todo(todo: TodoCreate, db: Session = Depends(get_db)):
     try:
         db_todo = models.Todo(**todo.model_dump())

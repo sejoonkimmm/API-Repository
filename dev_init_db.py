@@ -17,10 +17,7 @@ def init_db():
         raise
 
 def main():
-    if os.getenv("ENVIRONMENT", "development") == "development":
-        init_db()
-    else:
-        logger.warning("Not in development environment. Skipping table creation.")
+    init_db()
     
     uvicorn.run(
         "app.main:app", 

@@ -8,15 +8,8 @@ from sqlalchemy.orm import Session
 
 from . import models
 from .database import get_db
-from .schemas import (
-    DatabaseStatus,
-    HealthResponse,
-    HealthStatus,
-    KubernetesInfo,
-    TodoCreate,
-    TodoResponse,
-    TodoUpdate,
-)
+from .schemas import (DatabaseStatus, HealthResponse, HealthStatus,
+                      KubernetesInfo, TodoCreate, TodoResponse, TodoUpdate)
 
 app = FastAPI(title="TODO API with Health Check")
 

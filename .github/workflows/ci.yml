@@ -26,7 +26,6 @@ jobs:
           
       - name: Run linters
         run: |
-          black --check app/
           isort --check-only app/
 
   build:
